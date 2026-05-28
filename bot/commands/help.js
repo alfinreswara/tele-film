@@ -7,9 +7,12 @@ const HELP_TEXT = [
   '/trending \\- lihat trending movie, TV, dan anime',
   '/help \\- tampilkan bantuan',
   '',
+  'AI akan mengikuti bahasa yang kamu pakai',
+  '',
   'Contoh:',
   '`/movie interstellar`',
-  '`/ai film alien sedih luar angkasa`'
+  '`/ai film alien sedih luar angkasa`',
+  '`/ai best comedy movies of all time`'
 ].join('\n');
 
 function registerHelpCommand(bot) {

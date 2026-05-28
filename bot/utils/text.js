@@ -1,9 +1,9 @@
-function sanitizeQuery(input = '') {
+function sanitizeQuery(input = '', max = 120) {
   return input
     .replace(/[<>]/g, '')
     .replace(/\s+/g, ' ')
     .trim()
-    .slice(0, 120);
+    .slice(0, max);
 }
 
 function escapeMarkdown(text = '') {

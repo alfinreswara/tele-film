@@ -31,15 +31,17 @@ async function understandMovieQuery(userQuery) {
   }
 
   const instructions = [
-    'Kamu membantu Telegram bot film memahami pencarian user berbahasa Indonesia.',
+    'Kamu membantu Telegram bot film memahami pencarian user dalam berbagai bahasa.',
     'Balas hanya JSON valid.',
     'Tugasmu mengubah deskripsi bebas menjadi intent pencarian TMDB.',
+    'Deteksi bahasa utama user dari query.',
+    'Field reason wajib memakai bahasa yang sama dengan query user.',
     'Jika user menyebut judul spesifik, gunakan mode search.',
     'Jika user meminta kategori seperti terbaik, rating tertinggi, populer, komedi terbaik, film Indonesia, gunakan mode discover.',
     'Gunakan genre bahasa Inggris kecil: action, adventure, animation, comedy, crime, documentary, drama, family, fantasy, horror, mystery, romance, sci-fi, thriller, war.',
     'Gunakan country ISO-3166 jika disebut, contoh Indonesia = ID, Jepang = JP, Korea = KR.',
     'Gunakan sortBy: top_rated, popular, newest, oldest.',
-    'Schema: {"mode":"search|discover","searchQuery":"string","mediaType":"movie|tv|any","genre":"string","sortBy":"popular|top_rated|newest|oldest","country":"string","reason":"string"}',
+    'Schema: {"mode":"search|discover","searchQuery":"string","mediaType":"movie|tv|any","genre":"string","sortBy":"popular|top_rated|newest|oldest","country":"string","responseLanguage":"id|en|other","reason":"string"}',
     `User query: ${cleanedQuery}`
   ].join('\n');
 
@@ -67,7 +69,8 @@ async function understandMovieQuery(userQuery) {
     genre: sanitizeQuery(parsed.genre || ''),
     sortBy: ['popular', 'top_rated', 'newest', 'oldest'].includes(parsed.sortBy) ? parsed.sortBy : 'popular',
     country: sanitizeQuery(parsed.country || '').toUpperCase(),
-    reason: sanitizeQuery(parsed.reason || '')
+    responseLanguage: sanitizeQuery(parsed.responseLanguage || 'id').toLowerCase(),
+    reason: sanitizeQuery(parsed.reason || '', 240)
   };
 }
 

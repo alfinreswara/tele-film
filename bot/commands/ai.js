@@ -11,6 +11,28 @@ function filterByMediaType(results, mediaType) {
   return results.filter((item) => item.type === mediaType);
 }
 
+function isEnglish(intent) {
+  return intent.responseLanguage === 'en';
+}
+
+function aiText(intent, key, params = {}) {
+  const english = isEnglish(intent);
+  const messages = {
+    noResults: english
+      ? `AI understood your search as "${params.searchQuery}", but TMDB did not find a result.`
+      : `AI memahami pencarian sebagai "${params.searchQuery}", tapi TMDB belum menemukan hasil.`,
+    noDetails: english
+      ? `AI understood your search as "${params.searchQuery}", but the movie details are not available.`
+      : `AI memahami pencarian sebagai "${params.searchQuery}", tapi detail film belum tersedia.`,
+    prefix: english ? 'AI Search' : 'AI Search',
+    mode: english ? 'TMDB mode' : 'Mode TMDB',
+    remaining: english ? 'AI daily limit left' : 'Sisa limit AI hari ini',
+    general: english ? 'general' : 'umum'
+  };
+
+  return messages[key];
+}
+
 async function findAiResults(intent) {
   const mediaType = intent.mediaType === 'tv' ? 'tv' : 'movie';
 
@@ -62,13 +84,13 @@ function registerAiCommand(bot) {
       const first = results[0];
 
       if (!first) {
-        return ctx.reply(`AI memahami pencarian sebagai "${intent.searchQuery}", tapi TMDB belum menemukan hasil.`);
+        return ctx.reply(aiText(intent, 'noResults', { searchQuery: intent.searchQuery }));
       }
 
       const movie = await tmdbService.getDetails(first.id, first.type);
 
       if (!movie) {
-        return ctx.reply(`AI memahami pencarian sebagai "${intent.searchQuery}", tapi detail film belum tersedia.`);
+        return ctx.reply(aiText(intent, 'noDetails', { searchQuery: intent.searchQuery }));
       }
 
       addHistory({
@@ -78,8 +100,10 @@ function registerAiCommand(bot) {
       });
 
       if (intent.reason) {
-        const modeText = intent.mode === 'discover' ? `Discover ${intent.genre || 'umum'} ${intent.sortBy}` : `Search ${intent.searchQuery}`;
-        await ctx.reply(`AI Search: ${intent.reason}\nMode TMDB: ${modeText}\nSisa limit AI hari ini: ${usage.remaining}`);
+        const modeText = intent.mode === 'discover'
+          ? `Discover ${intent.genre || aiText(intent, 'general')} ${intent.sortBy}`
+          : `Search ${intent.searchQuery}`;
+        await ctx.reply(`${aiText(intent, 'prefix')}: ${intent.reason}\n${aiText(intent, 'mode')}: ${modeText}\n${aiText(intent, 'remaining')}: ${usage.remaining}`);
       }
 
       return sendMovie(ctx, movie);
