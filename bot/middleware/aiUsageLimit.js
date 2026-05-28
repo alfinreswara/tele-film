@@ -1,4 +1,5 @@
 const { env } = require('../config/env');
+const { isAdminUser } = require('../utils/admin');
 
 const usage = new Map();
 
@@ -8,6 +9,7 @@ function dayKey() {
 
 function checkAndConsume(userId) {
   if (!userId) return { allowed: true, remaining: env.aiDailyLimit };
+  if (isAdminUser(userId)) return { allowed: true, remaining: 'admin' };
 
   const key = `${userId}:${dayKey()}`;
   const count = usage.get(key) || 0;

@@ -1,4 +1,5 @@
 const { env } = require('../config/env');
+const { isAdminUser } = require('../utils/admin');
 const logger = require('../utils/logger');
 
 const buckets = new Map();
@@ -7,6 +8,7 @@ function rateLimit() {
   return async (ctx, next) => {
     const userId = ctx.from?.id;
     if (!userId) return next();
+    if (isAdminUser(userId)) return next();
 
     const now = Date.now();
     const bucket = buckets.get(userId) || [];

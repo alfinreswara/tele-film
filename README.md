@@ -24,6 +24,7 @@ Isi `.env`:
 
 ```env
 BOT_TOKEN=token_bot_telegram
+ADMIN_TELEGRAM_IDS=6214249890
 TMDB_API_KEY=api_key_tmdb
 OPENSUBTITLES_API_KEY=api_key_opensubtitles
 OPENAI_API_KEY=api_key_openai

@@ -7,6 +7,13 @@ function getEnvNumber(key, fallback) {
   return Number.isFinite(value) && value > 0 ? value : fallback;
 }
 
+function getEnvList(key) {
+  return (process.env[key] || '')
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean);
+}
+
 function validateEnv() {
   const missing = required.filter((key) => !process.env[key]);
 
@@ -19,6 +26,7 @@ module.exports = {
   validateEnv,
   env: {
     botToken: process.env.BOT_TOKEN,
+    adminTelegramIds: getEnvList('ADMIN_TELEGRAM_IDS'),
     tmdbApiKey: process.env.TMDB_API_KEY,
     aiProvider: process.env.AI_PROVIDER || 'openai',
     openaiApiKey: process.env.OPENAI_API_KEY,
