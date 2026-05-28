@@ -1,0 +1,15 @@
+module.exports = {
+  apps: [
+    {
+      name: 'movie-companion-bot',
+      script: 'bot/bot.js',
+      instances: 1,
+      autorestart: true,
+      watch: false,
+      max_memory_restart: '500M',
+      env: {
+        NODE_ENV: 'production'
+      }
+    }
+  ]
+};
