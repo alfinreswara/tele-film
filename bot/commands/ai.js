@@ -37,25 +37,42 @@ async function findAiResults(intent) {
   const mediaType = intent.mediaType === 'tv' ? 'tv' : 'movie';
 
   if (intent.mode === 'discover') {
-    const discovered = await tmdbService.discover({
-      mediaType,
-      genre: intent.genre,
-      keywords: intent.keywords,
-      sortBy: intent.sortBy,
-      country: intent.country
-    });
-
-    if (discovered.length) return discovered;
-
-    if (intent.keywords?.length) {
-      const keywordOnly = await tmdbService.discover({
+    const attempts = [
+      {
+        mediaType,
+        genre: intent.genre,
+        keywords: intent.keywords,
+        sortBy: intent.sortBy,
+        country: intent.country
+      },
+      {
+        mediaType,
+        genre: intent.genre,
+        sortBy: intent.sortBy,
+        country: intent.country
+      },
+      {
         mediaType,
         keywords: intent.keywords,
         sortBy: intent.sortBy,
         country: intent.country
-      });
+      },
+      {
+        mediaType,
+        genre: intent.genre,
+        sortBy: intent.sortBy
+      },
+      {
+        mediaType,
+        keywords: intent.keywords,
+        sortBy: intent.sortBy
+      }
+    ];
 
-      if (keywordOnly.length) return keywordOnly;
+    for (const attempt of attempts) {
+      if (!attempt.genre && !attempt.keywords?.length && !attempt.country) continue;
+      const discovered = await tmdbService.discover(attempt);
+      if (discovered.length) return discovered;
     }
   }
 

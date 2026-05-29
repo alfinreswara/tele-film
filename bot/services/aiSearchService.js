@@ -22,6 +22,23 @@ function parseJson(raw) {
 function inferLocalIntent(query, intent) {
   const lowered = query.toLowerCase();
   const next = { ...intent };
+  const wantsTopRated = /(terbaik|rating tertinggi|rating terbagus|highest rated|top rated|best)/i.test(lowered);
+
+  function addRule({ pattern, genre, keywords = [], sortBy, mediaType = 'movie', reasonId, reasonEn }) {
+    if (!pattern.test(lowered)) return;
+
+    next.mode = 'discover';
+    next.mediaType = next.mediaType === 'any' ? mediaType : next.mediaType;
+    next.genre = next.genre || genre || '';
+    next.sortBy = wantsTopRated ? 'top_rated' : (sortBy || next.sortBy);
+    next.keywords = [
+      ...new Set([...(next.keywords || []), ...keywords])
+    ].slice(0, 5);
+
+    if (!next.reason || /umum|popular|populer|general/i.test(next.reason)) {
+      next.reason = next.responseLanguage === 'en' ? reasonEn : reasonId;
+    }
+  }
 
   if (/(sekolah|school|high school|kelas|kampus|college|student|pelajar|remaja)/i.test(lowered)) {
     next.mode = 'discover';
@@ -33,14 +50,86 @@ function inferLocalIntent(query, intent) {
     ];
   }
 
-  if (/(mood|semangat|happy|bahagia|menghibur|uplifting|feel good|feel-good)/i.test(lowered)) {
-    next.mode = 'discover';
-    next.mediaType = next.mediaType === 'any' ? 'movie' : next.mediaType;
-    next.genre = next.genre || 'comedy';
-    next.keywords = [
-      ...new Set([...(next.keywords || []), 'feel good', 'friendship'])
-    ];
-  }
+  addRule({
+    pattern: /(padang gurun|padang pasir|gurun|desert|sahara|dune)/i,
+    genre: 'adventure',
+    keywords: ['desert'],
+    sortBy: 'popular',
+    reasonId: 'Pengguna mencari film bertema padang gurun, jadi pencarian difokuskan ke keyword desert.',
+    reasonEn: 'The user is looking for desert-themed movies, so the search is focused on the desert keyword.'
+  });
+
+  addRule({
+    pattern: /(luar angkasa|angkasa|antariksa|alien|space|planet|galaksi|galaxy|mars|wormhole)/i,
+    genre: 'sci-fi',
+    keywords: ['space', 'alien'],
+    sortBy: 'popular',
+    reasonId: 'Pengguna mencari film bertema luar angkasa atau alien, jadi pencarian difokuskan ke sci-fi dan keyword space.',
+    reasonEn: 'The user is looking for space or alien movies, so the search is focused on sci-fi and space keywords.'
+  });
+
+  addRule({
+    pattern: /(sedih|nangis|bikin nangis|melankolis|galau|sad|tearjerker|depressing)/i,
+    genre: 'drama',
+    keywords: ['tragedy', 'loss'],
+    sortBy: 'top_rated',
+    reasonId: 'Pengguna mencari film bernuansa sedih, jadi pencarian difokuskan ke drama dan tema kehilangan.',
+    reasonEn: 'The user is looking for sad movies, so the search is focused on drama and loss themes.'
+  });
+
+  addRule({
+    pattern: /(mood|semangat|happy|bahagia|menghibur|uplifting|feel good|feel-good)/i,
+    genre: 'comedy',
+    keywords: ['feel good', 'friendship'],
+    sortBy: 'popular',
+    reasonId: 'Pengguna mencari film yang bisa memperbaiki mood, jadi pencarian difokuskan ke komedi dan feel-good.',
+    reasonEn: 'The user is looking for mood-lifting movies, so the search is focused on comedy and feel-good themes.'
+  });
+
+  addRule({
+    pattern: /(romantis|cinta|romance|love story|pacaran)/i,
+    genre: 'romance',
+    keywords: ['love', 'relationship'],
+    sortBy: 'popular',
+    reasonId: 'Pengguna mencari film romantis, jadi pencarian difokuskan ke genre romance.',
+    reasonEn: 'The user is looking for romantic movies, so the search is focused on romance.'
+  });
+
+  addRule({
+    pattern: /(zombie|mayat hidup|undead)/i,
+    genre: 'horror',
+    keywords: ['zombie'],
+    sortBy: 'popular',
+    reasonId: 'Pengguna mencari film zombie, jadi pencarian difokuskan ke horror dan keyword zombie.',
+    reasonEn: 'The user is looking for zombie movies, so the search is focused on horror and zombie keywords.'
+  });
+
+  addRule({
+    pattern: /(perang|militer|tentara|war|military|soldier)/i,
+    genre: 'war',
+    keywords: ['war', 'soldier'],
+    sortBy: 'top_rated',
+    reasonId: 'Pengguna mencari film perang, jadi pencarian difokuskan ke genre war.',
+    reasonEn: 'The user is looking for war movies, so the search is focused on the war genre.'
+  });
+
+  addRule({
+    pattern: /(detektif|misteri|investigasi|detective|mystery|investigation|crime)/i,
+    genre: 'mystery',
+    keywords: ['detective', 'investigation'],
+    sortBy: 'popular',
+    reasonId: 'Pengguna mencari film misteri atau detektif, jadi pencarian difokuskan ke mystery dan investigasi.',
+    reasonEn: 'The user is looking for mystery or detective movies, so the search is focused on mystery and investigation.'
+  });
+
+  addRule({
+    pattern: /(anime)/i,
+    genre: next.genre,
+    keywords: ['anime'],
+    mediaType: 'tv',
+    reasonId: 'Pengguna mencari anime, jadi pencarian difokuskan ke TV/anime.',
+    reasonEn: 'The user is looking for anime, so the search is focused on TV/anime.'
+  });
 
   return next;
 }
