@@ -1,5 +1,7 @@
 const tmdbService = require('../services/tmdbService');
 const subtitleService = require('../services/subtitleService');
+const watchlistStore = require('../database/watchlist');
+const animeFollows = require('../database/animeFollows');
 const { yearFromDate } = require('../utils/text');
 const { formatSimilar, formatSubtitleResults } = require('../utils/formatters');
 const { subtitleKeyboard } = require('../utils/keyboards');
@@ -75,6 +77,34 @@ function registerCallbackHandlers(bot) {
     } catch (error) {
       logger.error('similar_callback_failed', { error: error.message, type, id });
       return ctx.reply('Gagal memuat rekomendasi. Coba lagi sebentar.');
+    }
+  });
+
+  bot.action(/^watch:add:(movie|tv):(\d+)$/, async (ctx) => {
+    const [, type, id] = ctx.match;
+    await ctx.answerCbQuery();
+
+    try {
+      const movie = await tmdbService.getDetails(id, type);
+      watchlistStore.addToWatchlist(ctx.from?.id, movie);
+      return ctx.reply(`${movie.title} sudah disimpan ke watchlist.`);
+    } catch (error) {
+      logger.error('watchlist_add_failed', { error: error.message, type, id });
+      return ctx.reply('Gagal menyimpan ke watchlist. Coba lagi sebentar.');
+    }
+  });
+
+  bot.action(/^anime:follow:(\d+)$/, async (ctx) => {
+    const [, id] = ctx.match;
+    await ctx.answerCbQuery();
+
+    try {
+      const anime = await tmdbService.getDetails(id, 'tv');
+      animeFollows.followAnime(ctx.from?.id, anime);
+      return ctx.reply(`${anime.title} sudah difollow. Bot akan cek update episode secara berkala.`);
+    } catch (error) {
+      logger.error('anime_follow_failed', { error: error.message, id });
+      return ctx.reply('Gagal follow anime. Coba lagi sebentar.');
     }
   });
 }

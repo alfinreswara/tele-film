@@ -216,9 +216,17 @@ async function getDetails(id, type = 'movie') {
     rating: data.vote_average || 0,
     overview: data.overview || '',
     runtime: data.runtime || (data.episode_run_time || [])[0] || null,
+    numberOfEpisodes: data.number_of_episodes || 0,
+    numberOfSeasons: data.number_of_seasons || 0,
+    lastAirDate: data.last_air_date || '',
+    status: data.status || '',
     posterUrl: posterUrl(data.poster_path),
     trailerUrl: trailer ? `https://www.youtube.com/watch?v=${trailer.key}` : null,
-    similar
+    similar,
+    isAnime: isAnime({
+      original_language: data.original_language,
+      origin_country: data.origin_country || []
+    })
   };
 
   cache.set(cacheKey, details, CACHE_TTL);

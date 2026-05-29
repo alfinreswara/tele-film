@@ -6,10 +6,15 @@ function movieKeyboard(movie, navigation = null) {
     movie.trailerUrl
       ? Markup.button.url('Trailer', movie.trailerUrl)
       : Markup.button.callback('Trailer', `trailer:${movie.type}:${movie.id}`),
-    Markup.button.callback('Similar', `similar:${movie.type}:${movie.id}`)
+    Markup.button.callback('Similar', `similar:${movie.type}:${movie.id}`),
+    Markup.button.callback('Save', `watch:add:${movie.type}:${movie.id}`)
   ];
 
-  const rows = [buttons];
+  const rows = [buttons.slice(0, 3), buttons.slice(3)];
+
+  if (movie.type === 'tv' && movie.isAnime) {
+    rows[1].push(Markup.button.callback('Follow Anime', `anime:follow:${movie.id}`));
+  }
 
   if (navigation) {
     const navButtons = [];

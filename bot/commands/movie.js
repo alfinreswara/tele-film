@@ -59,6 +59,8 @@ function registerMovieCommand(bot) {
 
       addHistory({
         telegram_id: ctx.from?.id,
+        id: movie.id,
+        title: movie.title,
         query,
         type: movie.type
       });

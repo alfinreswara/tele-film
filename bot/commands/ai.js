@@ -108,6 +108,8 @@ function registerAiCommand(bot) {
 
       addHistory({
         telegram_id: ctx.from?.id,
+        id: movie.id,
+        title: movie.title,
         query: `/ai ${query} -> ${intent.searchQuery}`,
         type: movie.type
       });
