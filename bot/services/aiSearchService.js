@@ -134,6 +134,10 @@ function inferLocalIntent(query, intent) {
   return next;
 }
 
+function hasSpecificDiscoverSignal(intent) {
+  return Boolean(intent.genre || intent.country || intent.keywords?.length);
+}
+
 async function understandMovieQuery(userQuery) {
   const cleanedQuery = sanitizeQuery(userQuery);
 
@@ -153,6 +157,9 @@ async function understandMovieQuery(userQuery) {
     'Field reason wajib memakai bahasa yang sama dengan query user.',
     'Jika user menyebut judul spesifik, gunakan mode search.',
     'Jika user meminta kategori seperti terbaik, rating tertinggi, populer, komedi terbaik, film Indonesia, gunakan mode discover.',
+    'Jangan pernah memakai mode discover jika genre, keywords, dan country semuanya kosong.',
+    'Jika maksud user tidak jelas, pakai mode search dengan searchQuery dari kata inti user.',
+    'searchQuery harus mengikuti maksud user, jangan terlalu umum. Contoh: "film padang gurun" => searchQuery "desert movie", bukan "popular movies".',
     'Gunakan genre bahasa Inggris kecil: action, adventure, animation, comedy, crime, documentary, drama, family, fantasy, horror, mystery, romance, sci-fi, thriller, war.',
     'Gunakan keywords TMDB bahasa Inggris untuk tema spesifik, contoh sekolah = ["school","high school","student","coming of age"], mood bagus = ["feel good","friendship"], anime sekolah = ["school","anime"].',
     'Gunakan country ISO-3166 jika disebut, contoh Indonesia = ID, Jepang = JP, Korea = KR.',
@@ -192,10 +199,24 @@ async function understandMovieQuery(userQuery) {
     reason: sanitizeQuery(parsed.reason || '', 240)
   };
 
-  return inferLocalIntent(cleanedQuery, intent);
+  const inferred = inferLocalIntent(cleanedQuery, intent);
+
+  if (inferred.mode === 'discover' && !hasSpecificDiscoverSignal(inferred)) {
+    return {
+      ...inferred,
+      mode: 'search',
+      searchQuery: inferred.searchQuery || cleanedQuery,
+      reason: inferred.responseLanguage === 'en'
+        ? 'The query is not specific enough for TMDB discover, so the bot uses direct search terms.'
+        : 'Query belum cukup spesifik untuk TMDB discover, jadi bot memakai kata pencarian langsung.'
+    };
+  }
+
+  return inferred;
 }
 
 module.exports = {
   isConfigured,
-  understandMovieQuery
+  understandMovieQuery,
+  hasSpecificDiscoverSignal
 };

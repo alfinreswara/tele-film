@@ -166,7 +166,7 @@ async function discover(options = {}) {
   const keywordIds = await resolveKeywordIds(options.keywords || []);
 
   if (genreId) params.with_genres = genreId;
-  if (keywordIds.length) params.with_keywords = keywordIds.join('|');
+  if (keywordIds.length) params.with_keywords = options.keywordMode === 'any' ? keywordIds.join('|') : keywordIds.join(',');
   if (options.country) params.with_origin_country = String(options.country).toUpperCase();
   if (options.year) {
     const yearKey = mediaType === 'tv' ? 'first_air_date_year' : 'primary_release_year';
