@@ -40,11 +40,23 @@ async function findAiResults(intent) {
     const discovered = await tmdbService.discover({
       mediaType,
       genre: intent.genre,
+      keywords: intent.keywords,
       sortBy: intent.sortBy,
       country: intent.country
     });
 
     if (discovered.length) return discovered;
+
+    if (intent.keywords?.length) {
+      const keywordOnly = await tmdbService.discover({
+        mediaType,
+        keywords: intent.keywords,
+        sortBy: intent.sortBy,
+        country: intent.country
+      });
+
+      if (keywordOnly.length) return keywordOnly;
+    }
   }
 
   const searched = filterByMediaType(await tmdbService.search(intent.searchQuery), intent.mediaType);
@@ -53,6 +65,7 @@ async function findAiResults(intent) {
   return tmdbService.discover({
     mediaType,
     genre: intent.genre,
+    keywords: intent.keywords,
     sortBy: intent.sortBy,
     country: intent.country
   });
@@ -100,8 +113,12 @@ function registerAiCommand(bot) {
       });
 
       if (intent.reason) {
+        const detailParts = [
+          intent.genre || aiText(intent, 'general'),
+          ...(intent.keywords || []).slice(0, 3)
+        ];
         const modeText = intent.mode === 'discover'
-          ? `Discover ${intent.genre || aiText(intent, 'general')} ${intent.sortBy}`
+          ? `Discover ${detailParts.join(', ')} ${intent.sortBy}`
           : `Search ${intent.searchQuery}`;
         await ctx.reply(`${aiText(intent, 'prefix')}: ${intent.reason}\n${aiText(intent, 'mode')}: ${modeText}\n${aiText(intent, 'remaining')}: ${usage.remaining}`);
       }

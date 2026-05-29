@@ -117,6 +117,38 @@ function genreIdFor(mediaType, genre) {
   return genres[key] || null;
 }
 
+async function resolveKeywordIds(keywords = []) {
+  const ids = [];
+
+  for (const keyword of keywords.slice(0, 5)) {
+    const normalized = String(keyword || '').trim().toLowerCase();
+    if (!normalized) continue;
+
+    const cacheKey = `tmdb:keyword:${normalized}`;
+    const cached = cache.get(cacheKey);
+
+    if (cached) {
+      ids.push(cached);
+      continue;
+    }
+
+    const data = await tmdbClient.get('/search/keyword', {
+      query: normalized,
+      page: 1
+    });
+    const match = (data.results || []).find((item) => (
+      item.name?.toLowerCase() === normalized
+    )) || data.results?.[0];
+
+    if (match?.id) {
+      cache.set(cacheKey, match.id, CACHE_TTL);
+      ids.push(match.id);
+    }
+  }
+
+  return ids;
+}
+
 async function discover(options = {}) {
   const mediaType = options.mediaType === 'tv' ? 'tv' : 'movie';
   const cacheKey = `tmdb:discover:${JSON.stringify(options)}`;
@@ -131,8 +163,10 @@ async function discover(options = {}) {
     'vote_count.gte': options.sortBy === 'top_rated' ? 2000 : 50
   };
   const genreId = genreIdFor(mediaType, options.genre);
+  const keywordIds = await resolveKeywordIds(options.keywords || []);
 
   if (genreId) params.with_genres = genreId;
+  if (keywordIds.length) params.with_keywords = keywordIds.join('|');
   if (options.country) params.with_origin_country = String(options.country).toUpperCase();
   if (options.year) {
     const yearKey = mediaType === 'tv' ? 'first_air_date_year' : 'primary_release_year';
