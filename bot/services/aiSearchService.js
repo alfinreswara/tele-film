@@ -19,6 +19,12 @@ function parseJson(raw) {
   }
 }
 
+function detectResponseLanguage(query) {
+  return /\b(best|movie|movies|sad|space|school|war|romance|zombie|desert|comedy)\b/i.test(query)
+    ? 'en'
+    : 'id';
+}
+
 function inferLocalIntent(query, intent) {
   const lowered = query.toLowerCase();
   const next = { ...intent };
@@ -138,6 +144,27 @@ function hasSpecificDiscoverSignal(intent) {
   return Boolean(intent.genre || intent.country || intent.keywords?.length);
 }
 
+function buildFallbackIntent(userQuery, reason = '') {
+  const cleanedQuery = sanitizeQuery(userQuery);
+  const responseLanguage = detectResponseLanguage(cleanedQuery);
+  const intent = {
+    configured: true,
+    mode: 'search',
+    searchQuery: cleanedQuery,
+    mediaType: 'movie',
+    genre: '',
+    keywords: [],
+    sortBy: 'popular',
+    country: '',
+    responseLanguage,
+    reason: reason || (responseLanguage === 'en'
+      ? 'AI provider is unavailable, so the bot uses local query matching.'
+      : 'Provider AI sedang bermasalah, jadi bot memakai pencocokan query lokal.')
+  };
+
+  return inferLocalIntent(cleanedQuery, intent);
+}
+
 async function understandMovieQuery(userQuery) {
   const cleanedQuery = sanitizeQuery(userQuery);
 
@@ -168,18 +195,24 @@ async function understandMovieQuery(userQuery) {
     `User query: ${cleanedQuery}`
   ].join('\n');
 
-  const raw = env.aiProvider === 'gemini'
-    ? await geminiClient.generateJson(instructions)
-    : await openaiClient.createChatCompletion([
-      {
-        role: 'system',
-        content: instructions
-      },
-      {
-        role: 'user',
-        content: cleanedQuery
-      }
-    ]);
+  let raw;
+
+  try {
+    raw = env.aiProvider === 'gemini'
+      ? await geminiClient.generateJson(instructions)
+      : await openaiClient.createChatCompletion([
+        {
+          role: 'system',
+          content: instructions
+        },
+        {
+          role: 'user',
+          content: cleanedQuery
+        }
+      ]);
+  } catch {
+    return buildFallbackIntent(cleanedQuery);
+  }
 
   const parsed = parseJson(raw);
   const searchQuery = sanitizeQuery(parsed.searchQuery || cleanedQuery);
@@ -218,5 +251,6 @@ async function understandMovieQuery(userQuery) {
 module.exports = {
   isConfigured,
   understandMovieQuery,
-  hasSpecificDiscoverSignal
+  hasSpecificDiscoverSignal,
+  buildFallbackIntent
 };
