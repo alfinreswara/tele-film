@@ -5,7 +5,7 @@ Movie Companion Telegram Bot sesuai PRD: bot Telegram untuk mencari film, anime,
 ## Fitur
 
 - `/movie <judul>` mencari film/series/anime via TMDB.
-- `/ai <deskripsi>` memahami pencarian natural language dengan Gemini/OpenAI, lalu fallback ke pencocokan lokal jika provider belum siap.
+- `/ai <deskripsi>` memahami pencarian natural language dengan Gemini/OpenAI, menolak topik di luar film/TV/anime, lalu fallback ke pencocokan lokal jika provider belum siap.
 - Inline button `Subtitle`, `Trailer`, `Similar`, `Save`, dan `Follow Anime`.
 - `/watchlist` menampilkan film yang disimpan user.
 - `/recommend` memberi rekomendasi personal dari watchlist/riwayat.

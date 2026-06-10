@@ -33,7 +33,7 @@ const movieSearchIntentSchema = {
       "reason"
     ],
     properties: {
-      mode: { type: "string", enum: ["search", "discover"] },
+      mode: { type: "string", enum: ["search", "discover", "off_topic"] },
       searchQuery: { type: "string" },
       mediaType: { type: "string", enum: ["movie", "tv", "any"] },
       genre: { type: "string" },

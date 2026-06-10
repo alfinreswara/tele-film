@@ -27,7 +27,10 @@ function aiText(intent, key, params = {}) {
     prefix: english ? 'AI Search' : 'AI Search',
     mode: english ? 'TMDB mode' : 'Mode TMDB',
     remaining: english ? 'AI daily limit left' : 'Sisa limit AI hari ini',
-    general: english ? 'general' : 'umum'
+    general: english ? 'general' : 'umum',
+    offTopic: intent.reason || (english
+      ? 'AI Search is only for movie, TV series, and anime requests. Please use /ai for titles, genres, moods, trailers, subtitles, or viewing recommendations.'
+      : 'AI Search hanya untuk pencarian film, TV series, dan anime. Gunakan /ai untuk judul, genre, mood, trailer, subtitle, atau rekomendasi tontonan.')
   };
 
   return messages[key];
@@ -115,6 +118,11 @@ function registerAiCommand(bot) {
       return ctx.reply('Ketik deskripsi film setelah command. Contoh: /ai film alien sedih luar angkasa');
     }
 
+    const localOffTopicIntent = aiSearchService.detectOffTopicQuery(query);
+    if (localOffTopicIntent) {
+      return ctx.reply(aiText(localOffTopicIntent, 'offTopic'));
+    }
+
     const providerConfigured = aiSearchService.isConfigured();
     const usage = providerConfigured
       ? checkAndConsume(ctx.from?.id)
@@ -127,6 +135,10 @@ function registerAiCommand(bot) {
 
     try {
       const intent = await aiSearchService.understandMovieQuery(query);
+
+      if (intent.mode === 'off_topic') {
+        return ctx.reply(aiText(intent, 'offTopic'));
+      }
 
       const results = await findAiResults(intent);
       const first = results[0];
