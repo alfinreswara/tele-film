@@ -11,12 +11,31 @@ function isConfigured() {
   return openaiClient.isConfigured();
 }
 
-function parseJson(raw) {
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return {};
+function parseJson(raw = "") {
+  const text = String(raw).trim();
+  const candidates = [text];
+  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
+
+  if (fenced?.[1]) {
+    candidates.push(fenced[1].trim());
   }
+
+  const start = text.indexOf("{");
+  const end = text.lastIndexOf("}");
+
+  if (start !== -1 && end > start) {
+    candidates.push(text.slice(start, end + 1));
+  }
+
+  for (const candidate of candidates) {
+    try {
+      return JSON.parse(candidate);
+    } catch {
+      // Try the next normalized candidate.
+    }
+  }
+
+  return {};
 }
 
 function detectResponseLanguage(query) {
@@ -137,6 +156,28 @@ function inferLocalIntent(query, intent) {
     reasonEn: 'The user is looking for anime, so the search is focused on TV/anime.'
   });
 
+  if (/(indonesia|film lokal|film nasional|lokal indonesia)/i.test(lowered)) {
+    next.mode = "discover";
+    next.country = next.country || "ID";
+    next.reason = next.responseLanguage === "en"
+      ? "The user is looking for Indonesian movies, so the search is focused on Indonesian-origin titles."
+      : "Pengguna mencari film Indonesia, jadi pencarian difokuskan ke judul asal Indonesia.";
+  }
+
+  if (/(korea|korean|drakor|k-drama|kdrama)/i.test(lowered)) {
+    next.mode = "discover";
+    next.country = next.country || "KR";
+    next.mediaType = /drakor|k-drama|kdrama/i.test(lowered) ? "tv" : next.mediaType;
+    next.reason = next.responseLanguage === "en"
+      ? "The user is looking for Korean titles, so the search is focused on Korean-origin results."
+      : "Pengguna mencari judul Korea, jadi pencarian difokuskan ke hasil asal Korea.";
+  }
+
+  if (/(jepang|japanese|anime)/i.test(lowered)) {
+    next.mode = "discover";
+    next.country = next.country || "JP";
+  }
+
   return next;
 }
 
@@ -144,22 +185,34 @@ function hasSpecificDiscoverSignal(intent) {
   return Boolean(intent.genre || intent.country || intent.keywords?.length);
 }
 
-function buildFallbackIntent(userQuery, reason = '') {
+function fallbackReason(responseLanguage, providerConfigured) {
+  if (responseLanguage === "en") {
+    return providerConfigured
+      ? "AI provider is unavailable, so the bot uses local query matching."
+      : "AI provider is not configured yet, so the bot uses local query matching.";
+  }
+
+  return providerConfigured
+    ? "Provider AI sedang bermasalah, jadi bot memakai pencocokan query lokal."
+    : "Provider AI belum dikonfigurasi, jadi bot memakai pencocokan query lokal.";
+}
+
+function buildFallbackIntent(userQuery, reason = "", options = {}) {
   const cleanedQuery = sanitizeQuery(userQuery);
   const responseLanguage = detectResponseLanguage(cleanedQuery);
+  const providerConfigured = options.providerConfigured ?? isConfigured();
   const intent = {
-    configured: true,
-    mode: 'search',
+    configured: providerConfigured,
+    providerFallback: true,
+    mode: "search",
     searchQuery: cleanedQuery,
-    mediaType: 'movie',
-    genre: '',
+    mediaType: "movie",
+    genre: "",
     keywords: [],
-    sortBy: 'popular',
-    country: '',
+    sortBy: "popular",
+    country: "",
     responseLanguage,
-    reason: reason || (responseLanguage === 'en'
-      ? 'AI provider is unavailable, so the bot uses local query matching.'
-      : 'Provider AI sedang bermasalah, jadi bot memakai pencocokan query lokal.')
+    reason: reason || fallbackReason(responseLanguage, providerConfigured)
   };
 
   return inferLocalIntent(cleanedQuery, intent);
@@ -169,11 +222,7 @@ async function understandMovieQuery(userQuery) {
   const cleanedQuery = sanitizeQuery(userQuery);
 
   if (!isConfigured()) {
-    return {
-      configured: false,
-      searchQuery: cleanedQuery,
-      note: 'AI provider belum dikonfigurasi.'
-    };
+    return buildFallbackIntent(cleanedQuery, "", { providerConfigured: false });
   }
 
   const instructions = [

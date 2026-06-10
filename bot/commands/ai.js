@@ -115,11 +115,10 @@ function registerAiCommand(bot) {
       return ctx.reply('Ketik deskripsi film setelah command. Contoh: /ai film alien sedih luar angkasa');
     }
 
-    if (!aiSearchService.isConfigured()) {
-      return ctx.reply('Fitur AI belum aktif. Isi API key provider AI di .env dulu.');
-    }
-
-    const usage = checkAndConsume(ctx.from?.id);
+    const providerConfigured = aiSearchService.isConfigured();
+    const usage = providerConfigured
+      ? checkAndConsume(ctx.from?.id)
+      : { allowed: true, remaining: null };
     if (!usage.allowed) {
       return ctx.reply('Limit AI harian kamu habis. Coba lagi besok atau pakai /movie untuk pencarian biasa.');
     }
@@ -158,7 +157,16 @@ function registerAiCommand(bot) {
         const modeText = intent.mode === 'discover' && (intent.genre || intent.keywords?.length || intent.country)
           ? `Discover ${detailParts.join(', ')} ${intent.sortBy}`
           : `Search ${intent.searchQuery}`;
-        await ctx.reply(`${aiText(intent, 'prefix')}: ${intent.reason}\n${aiText(intent, 'mode')}: ${modeText}\n${aiText(intent, 'remaining')}: ${usage.remaining}`);
+        const statusLines = [
+          aiText(intent, "prefix") + ": " + intent.reason,
+          aiText(intent, "mode") + ": " + modeText
+        ];
+
+        if (providerConfigured) {
+          statusLines.push(aiText(intent, "remaining") + ": " + usage.remaining);
+        }
+
+        await ctx.reply(statusLines.join("\n"));
       }
 
       return sendMovie(ctx, movie);

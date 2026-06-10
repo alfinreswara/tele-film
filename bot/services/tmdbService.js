@@ -45,6 +45,16 @@ const TV_GENRES = {
   western: 37
 };
 
+function validYear(value) {
+  const year = Number(value);
+  const maxYear = new Date().getFullYear() + 3;
+  return Number.isInteger(year) && year >= 1900 && year <= maxYear ? year : null;
+}
+
+function releaseDateField(mediaType) {
+  return mediaType === 'tv' ? 'first_air_date' : 'primary_release_date';
+}
+
 function posterUrl(path) {
   return path ? `${POSTER_BASE_URL}${path}` : null;
 }
@@ -67,6 +77,8 @@ function normalizeSearchResult(item) {
     overview: item.overview || '',
     rating: item.vote_average || 0,
     popularity: item.popularity || 0,
+    originalLanguage: item.original_language || '',
+    originCountries: item.origin_country || [],
     isAnime: isAnime(item)
   };
 }
@@ -92,19 +104,20 @@ async function search(query) {
   return results;
 }
 
-function sortValue(sortBy) {
-  const normalized = String(sortBy || '').toLowerCase();
+function sortValue(sortBy, mediaType = "movie") {
+  const normalized = String(sortBy || "").toLowerCase();
+  const dateField = releaseDateField(mediaType);
 
   if (['top_rated', 'rating', 'best', 'highest_rated'].includes(normalized)) {
     return 'vote_average.desc';
   }
 
   if (['newest', 'latest', 'recent'].includes(normalized)) {
-    return 'primary_release_date.desc';
+    return dateField + ".desc";
   }
 
   if (['oldest', 'classic'].includes(normalized)) {
-    return 'primary_release_date.asc';
+    return dateField + ".asc";
   }
 
   return 'popularity.desc';
@@ -159,7 +172,7 @@ async function discover(options = {}) {
     language: TMDB_LANGUAGE,
     include_adult: false,
     page: 1,
-    sort_by: sortValue(options.sortBy),
+    sort_by: sortValue(options.sortBy, mediaType),
     'vote_count.gte': options.sortBy === 'top_rated' ? 2000 : 50
   };
   const genreId = genreIdFor(mediaType, options.genre);
